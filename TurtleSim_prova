@@ -1,0 +1,54 @@
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist 
+from time import sleep
+import math
+from prova_fila import Fila
+
+class TurtleController(Node):
+    
+    def __init__(self):
+        super().__init__('turtle_controller')
+        self.publishers_ = self.create_publisher(Twist, 'turtle1/cmd_vel', 10)
+        self.timer_ = self.create_timer(0.1, self.move_turtle)
+        self.msg = Twist()
+        self.lista = Fila()
+        self.invertido = False
+        
+    def move_turtle(self):
+        #Enquanto o invertido for falso, ele vai ler a lista de coordenadas originais
+        if self.invertido == False:
+            self.lista.ver()
+            self.msg.linear.x, self.msg.angular.z = self.lista.chamar_item()
+            self.publishers_.publish(self.msg)
+            sleep(1)
+            
+        #Quando a lista de coordenadas originais terminar, ele vai começar a utilizar a lista de coordenadas invertidas, ele dá meia volta e começa a ler as coordenadas
+        if self.lista.n_itens() == 0 and self.invertido == False:
+            self.msg.linear.x = 0.0
+            self.msg.angular.z = math.radians(180)
+            self.publishers_.publish(self.msg)
+            self.invertido = True
+            sleep(1)
+        
+        #Retornando o caminho    
+        if self.invertido == True:
+            print('Voltando')
+            self.lista.ver_invertida()
+            self.msg.linear.x, self.msg.angular.z = self.lista.chamar_invertida()
+            self.publishers_.publish(self.msg)
+            sleep(1)
+        #Quando a lista estiver fazia, e finaliza e sai do programa.    
+        if self.lista.invertida() == 0:
+            print("Finalizei")
+            exit()
+            
+def main(args=None):
+    rclpy.init(args=args)
+    turtle_controller = TurtleController()
+    rclpy.spin(turtle_controller)
+    turtle_controller.destroy_node()
+    rclpy.shutdown()
+    
+if __name__ == '__main__':
+    main()
